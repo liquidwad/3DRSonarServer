@@ -2,6 +2,7 @@
 
 var _ = require('lodash'),
 	net = require('net'),
+	crypto = require('crypto'),
 	consoleStamp = require('console-stamp'),
 	shortid = require('shortid'),
 	config = require('./config'),
@@ -18,7 +19,6 @@ var server = net.createServer();
 var client;  // TODO: separate clients from users
 
 server.on('connection', function(socket) {
-
 	socket.id = shortid.generate();
 
 	console.log( "[" + socket.id + "][CONNECTED]");
@@ -26,9 +26,9 @@ server.on('connection', function(socket) {
 	client = socket;
 	
 	socket.on('data', function(data) {
-		var packet = data;
-		//console.log(socket.id + "packet: " + packet.toString());
-		switch(packet.type) {
+		console.log(socket.id + "packet: " + data);
+
+		/*switch(packet.type) {
 			case type.User:
 				//world.handleUserPacket(socket, packet);
 				break;
@@ -38,7 +38,7 @@ server.on('connection', function(socket) {
 			default:
 				console.log("unknown packet");
 				break;
-		}
+		}*/
 	});
 
 	socket.on('disconnect', function() {
@@ -54,3 +54,19 @@ server.on('connection', function(socket) {
 server.listen(config.PORT, function() {
 	console.log("Server listening on port " + server.address().port);
 });
+
+process.on('SIGINT', function() {
+	server.close(function(){
+		console.log('Stopped listening.');
+    });
+
+    process.exit();
+});
+
+/* GENERATE RANDOM DATA AND SEND TO CLIENT EVERY 10 SECONDS */
+setInterval(function() {
+	if(typeof client !== 'undefined') {
+		var buf = crypto.randomBytes(256);
+		client.write( buf );
+	}
+}, 10*1000);
