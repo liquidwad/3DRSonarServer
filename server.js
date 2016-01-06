@@ -69,4 +69,4 @@ setInterval(function() {
 		var buf = crypto.randomBytes(256);
 		client.write( buf );
 	}
-}, 10*1000);
+}, 500);
