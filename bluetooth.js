@@ -1,4 +1,5 @@
 var noble = require('noble'),
+	async = require('async'),
 	common = require('./common');
 
 ///28:cf:e9:4e:70:18 maybe we need this later?
@@ -8,17 +9,22 @@ var Bluetooth = function() {
 };
 
 Bluetooth.prototype.uuids = {
-	accel_service: '1791FFA0385311E3AA6E0800200C9A66',
-	accel_enable: '1791FFA1385311E3AA6E0800200C9A66',	
-	accel_threshold: '1791FFA6385311E3AA6E0800200C9A66',
-	accel_alert: '1791FFA7385311E3AA6E0800200C9A66',
-	accel_self_test: '1791FF90385311E3AA6E0800200C9A66',
-	sonar_service: '1791ff90385311e3aa6e0800200c9a66',
-	sonar_enable: '1791FF91385311E3AA6E0800200C9A66',
-	water_temp: '1791FF92385311E3AA6E0800200C9A66',
-	echoes: '1791FF93385311E3AA6E0800200C9A66',
-	light: '1791FF94385311E3AA6E0800200C9A66',
-	water_detect_adc: '1791FF9C385311E3AA6E0800200C9A66'
+	accel_service: 		'1791FFA0385311E3AA6E0800200C9A66',
+	accel_enable: 		'1791FFA1385311E3AA6E0800200C9A66',	
+	accel_range: 		'1791ffa2385311e3aa6e0800200c9a66',
+	accel_x: 			'1791ffa3385311e3aa6e0800200c9a66',
+	accel_y: 			'1791ffa4385311e3aa6e0800200c9a66',
+	accel_z: 			'1791ffa5385311e3aa6e0800200c9a66',
+	accel_threshold: 	'1791FFA6385311E3AA6E0800200C9A66',
+	accel_alert: 		'1791FFA7385311E3AA6E0800200C9A66',
+	accel_self_test: 	'1791FF90385311E3AA6E0800200C9A66',
+	sonar_service: 		'1791ff90385311e3aa6e0800200c9a66',
+	sonar_enable: 		'1791FF91385311E3AA6E0800200C9A66',
+	water_temp: 		'1791FF92385311E3AA6E0800200C9A66',
+	echoes: 			'1791FF93385311E3AA6E0800200C9A66',
+	light: 				'1791FF94385311E3AA6E0800200C9A66',
+	tgc_select: 		'1791FF96385311E3AA6E0800200C9A66',
+	water_detect_adc: 	'1791FF9C385311E3AA6E0800200C9A66'
 };
 
 Bluetooth.prototype.localNames = ['iBobber', 'ReelSonar v1', 'ReelSonar'];
@@ -26,6 +32,8 @@ Bluetooth.prototype.localNames = ['iBobber', 'ReelSonar v1', 'ReelSonar'];
 Bluetooth.prototype.cachedServices = {};
 
 Bluetooth.prototype.cachedCharacteristics = {};
+
+Bluetooth.prototype.bluetoothQueue = [];
 
 Bluetooth.prototype.discoverService = function(device, serviceUUID, callback) {
 	var _this = this;
@@ -75,7 +83,6 @@ Bluetooth.prototype.discoverCharacteristics = function(service, characteristicUU
 				callback(null);
 			} else {
 				var characteristic = characteristics[0];
-				
 				_this.cachedCharacteristics[characteristicUUID] = characteristic;
 				console.log("Found characteristic");
 				callback(characteristic);
@@ -87,11 +94,31 @@ Bluetooth.prototype.discoverCharacteristics = function(service, characteristicUU
 Bluetooth.prototype.getCharacteristic = function(device, serviceUUID, characteristicUUID, callback) {
 	var _this = this;
 	
-	console.log("Searching for char " + characteristicUUID + " in service " + serviceUUID);
-	
-	this.discoverService(device, serviceUUID, function(service) {
-		_this.discoverCharacteristics(service, characteristicUUID, callback);
-	});
+	var params = {
+		device: device,
+		serviceUUID: serviceUUID,
+		characteristicUUID: characteristicUUID,
+		callback: callback	
+	};
+
+	if(this.bluetoothQueue.length == 0) {
+		this.bluetoothQueue.push(params);
+		async.whilst(function() {
+			return _this.bluetoothQueue.length > 0;
+		}, function(async_callback) {
+			var params = _this.bluetoothQueue[0];
+			console.log("Searching for char " + params.characteristicUUID + " in service " + params.serviceUUID);
+			_this.discoverService(params.device, params.serviceUUID, function(service) {
+				_this.discoverCharacteristics(service, params.characteristicUUID, function(characteristic) {
+					_this.bluetoothQueue.splice(0, 1);
+					async_callback();
+					params.callback(characteristic);
+				});
+			});
+		});
+	} else {
+		this.bluetoothQueue.push(params);
+	}
 };
 
 Bluetooth.prototype.connectDevice = function(device, callback) {
@@ -133,8 +160,10 @@ Bluetooth.prototype.start = function() {
 		var index = _this.localNames.indexOf(device_localName);
 		if(index != -1) {
 			console.log(_this.localNames[index] + " found!");
-			noble.stopScanning();
 			_this.connectDevice(device, function() {
+				noble.stopScanning();
+				_this.lightsOn();
+				_this.lightsOff();
 				_this.TemperatureNotify(true);
 			});
 			_this.device = device;
@@ -147,26 +176,41 @@ Bluetooth.prototype.start = function() {
 };
 
 Bluetooth.prototype.TemperatureNotify = function(On) {
-	if(On) {
-		this.getCharacteristic(this.device, this.uuids.sonar_service, this.uuids.water_temp, function(characteristic) {
-			if(characteristic != null) {
+	this.getCharacteristic(this.device, this.uuids.sonar_service, this.uuids.water_temp, function(characteristic) {
+		if(characteristic != null) {
+			if(On) {
 				characteristic.on('read', function(data, isNotification) {
 					var temp = common.parseCelcius( data.readUInt16LE(0) );
 					console.log('Water temperature is ' + temp + ' C');
 				});
-				
+					
 				characteristic.notify(true, function(error) {
 					console.log('Water temperature notification is on');
 				});
 			}
-		});
-	}
+			else {
+				characteristic.notify(false, function(error) {
+					console.log('Water temperature notification is off');
+				});	
+			}
+		}
+	});
 };
 
-Bluetooth.prototype.sensorOn = function(value) {
+/* Sonar */
+Bluetooth.prototype.changeSonar = function(value) {
 	
 };
 
+Bluetooth.prototype.SonarOn = function() {
+	
+};
+
+Bluetooth.prototype.SonarOff = function() {
+	
+};
+
+/* LIGHT */
 Bluetooth.prototype.changeLight = function(value) {
 	this.getCharacteristic(this.device, this.uuids.sonar_service, this.uuids.light, function(characteristic) {
 		if(characteristic != null) {

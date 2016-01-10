@@ -6,7 +6,7 @@ var _ = require('lodash'),
 	consoleStamp = require('console-stamp'),
 	shortid = require('shortid'),
 	config = require('./config'),
-	type = require('./packets/type'),
+	type = require('./packets/opcodes'),
 	bluetooth = require('./bluetooth');
 
 //set console format
@@ -32,8 +32,8 @@ server.on('connection', function(socket) {
 	
 	socket.on('data', function(data) {
 		console.log(socket.id + "packet: " + data);
-
-		/*switch(packet.type) {
+		/*
+		switch(data[0]) {
 			case type.User:
 				//world.handleUserPacket(socket, packet);
 				break;
@@ -43,7 +43,8 @@ server.on('connection', function(socket) {
 			default:
 				console.log("unknown packet");
 				break;
-		}*/
+		}
+		*/
 	});
 
 	socket.on('disconnect', function() {
