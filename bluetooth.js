@@ -4,9 +4,7 @@ var noble = require('noble'),
 
 ///28:cf:e9:4e:70:18 maybe we need this later?
 //localname = ReelSona
-var Bluetooth = function() {
-	console.log("Bluetooth");
-};
+var Bluetooth = function() { };
 
 Bluetooth.prototype.uuids = {
 	accel_service: 		'1791FFA0385311E3AA6E0800200C9A66',
@@ -233,27 +231,31 @@ Bluetooth.prototype.SonarOff = function() {
 };
 
 /* LIGHT */
-Bluetooth.prototype.changeLight = function(value) {
+Bluetooth.prototype.changeLight = function(value, cb) {
 	this.getCharacteristic(this.device, this.uuids.sonar_service, this.uuids.light, function(characteristic, callback) {
 		if(characteristic != null) {
 			characteristic.write(new Buffer([value]), true, function(error) {
 				console.log("Light has been changed to " + value);
                 callback();
+                
+                if(typeof cb !== 'undefined') {
+                    cb();
+                }
 			});
 		}
 	});
 };
 
-Bluetooth.prototype.lightsOn = function() {
-	this.changeLight(0x01);
+Bluetooth.prototype.lightsOn = function(cb) {
+	this.changeLight(0x01, cb);
 };
 
-Bluetooth.prototype.lightsOff = function() {
-	this.changeLight(0x00);
+Bluetooth.prototype.lightsOff = function(cb) {
+	this.changeLight(0x00, cb);
 };
 
-Bluetooth.prototype.lightsStrobe = function() {
-	this.changeLight(0x02);
+Bluetooth.prototype.lightsStrobe = function(cb) {
+	this.changeLight(0x02, cb);
 };
 
 module.exports = Bluetooth;

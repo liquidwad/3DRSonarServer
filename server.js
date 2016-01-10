@@ -6,8 +6,12 @@ var _ = require('lodash'),
 	consoleStamp = require('console-stamp'),
 	shortid = require('shortid'),
 	config = require('./config'),
-	type = require('./packets/opcodes'),
-	bluetooth = require('./bluetooth');
+    types = require('./packets/types'),
+	opcodes = require('./packets/opcodes'),
+    sonarPackets = require('./packets/sonarpackets'),
+    packetUtils = require('./packets/packetutils'),
+	bluetooth = require('./bluetooth'),
+    async = require('async');
 
 //set console format
 consoleStamp(console, "dd mmm HH:mm:ss");
@@ -16,6 +20,37 @@ consoleStamp(console, "dd mmm HH:mm:ss");
 var bluetooth_controller = new bluetooth();
 
 bluetooth_controller.start();
+
+var packet_utils = new packetUtils();
+
+var sonar_packets = new sonarPackets(bluetooth_controller);
+
+var packet_processor = function(packets_queue) {
+    async.whilst(function() {
+        return packets_queue.length > 0;
+    }, function(callback) {
+        var packet = packets_queue[0];
+        
+        console.log("Handling packet " + packet);
+        
+        var cb = function() {
+          packets_queue.splice(0, 1);
+          callback();  
+        };
+        
+        switch(packet.type) {
+            case types.Sonar:
+                sonar_packets.handlePacket(packet, cb);
+                break;
+            case types.Motor:
+                break;
+            case types.Camera:
+                break;
+            default:
+                break;
+        }
+    });
+};
 
 //Create server
 var server = net.createServer();
@@ -32,30 +67,69 @@ server.on('connection', function(socket) {
 	
     var packet = null;
     
+    var packetsQueue = [];
+    
 	socket.on('data', function(data) {
 		console.log(socket.id + "packet: " + data);
         
-        packet += data;
+        if(packet != null) {
+            packet = Buffer.concat([packet, data]);
+        } else {
+            packet = data;
+        }
         
-        console.log(data);
-		/*
-		switch(data[0]) {
-			case type.User:
-				//world.handleUserPacket(socket, packet);
-				break;
-			case type.Character:
-				//world.handleCharacterPacket(clients, packet);
-				break;
-			default:
-				console.log("unknown packet");
-				break;
-		}
-		*/
+        var packetSize = packet_utils.getSize(packet);
+        
+        if(packetSize == null) {
+            return;
+        }
+        
+        var packetType = packet_utils.getType(packet);
+        
+        if(packetType == null) {
+            return;
+        }
+        
+        var packetOpcode = packet_utils.getOpcode(packet);
+        
+        if(packetOpcode == null) {
+            return;
+        }
+        
+        var packetValue = packet_utils.getValue(packet, packetSize);
+        
+        if(packetValue == null) {
+            return;
+        }
+        
+        var params = {
+            size: packetSize,
+            type: packetType,
+            opcode: packetOpcode,
+            value: packetValue 
+        };
+        
+        if(packetsQueue.length == 0) {
+            packetsQueue.push(params);
+            packet_processor(packetsQueue);
+        } else {
+            packetsQueue.push(params);
+        }
+
+        /* Reset for next packet */
+        var total_packet_size = (6+packetSize);
+        
+        if(packet.length > total_packet_size) {
+            var temp_buffer = new Buffer(packet.length-total_packet_size);
+            packet.copy(temp_buffer, 0, total_packet_size);
+            packet = temp_buffer;
+        } else {
+            packet = null;
+        }
 	});
 
 	socket.on('disconnect', function() {
 		console.log("disconnect");
-		world.removeClient(socket);
 	});
 
 	socket.on('error', function(e) {
