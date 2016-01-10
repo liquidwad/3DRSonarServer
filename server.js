@@ -30,8 +30,14 @@ server.on('connection', function(socket) {
 
 	client = socket;
 	
+    var packet = null;
+    
 	socket.on('data', function(data) {
 		console.log(socket.id + "packet: " + data);
+        
+        packet += data;
+        
+        console.log(data);
 		/*
 		switch(data[0]) {
 			case type.User:
@@ -70,11 +76,3 @@ process.on('SIGINT', function() {
 
     process.exit();
 });
-
-/* GENERATE RANDOM DATA AND SEND TO CLIENT EVERY 10 SECONDS */
-setInterval(function() {
-	if(typeof client !== 'undefined') {
-		var buf = crypto.randomBytes(256);
-		client.write( buf );
-	}
-}, 500);

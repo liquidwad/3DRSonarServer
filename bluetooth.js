@@ -35,6 +35,16 @@ Bluetooth.prototype.cachedCharacteristics = {};
 
 Bluetooth.prototype.bluetoothQueue = [];
 
+Bluetooth.prototype.onReadCallbacks = {};
+
+Bluetooth.prototype.registerCallback = function(uuid, callback) {
+    this.onReadCallbacks[uuid] = callback;
+};
+
+Bluetooth.prototype.getCallback = function(uuid) {
+    return this.onReadCallbacks[uuid];
+};
+
 Bluetooth.prototype.discoverService = function(device, serviceUUID, callback) {
 	var _this = this;
 	
@@ -111,8 +121,7 @@ Bluetooth.prototype.getCharacteristic = function(device, serviceUUID, characteri
 			_this.discoverService(params.device, params.serviceUUID, function(service) {
 				_this.discoverCharacteristics(service, params.characteristicUUID, function(characteristic) {
 					_this.bluetoothQueue.splice(0, 1);
-					async_callback();
-					params.callback(characteristic);
+					params.callback(characteristic, async_callback);
 				});
 			});
 		});
@@ -160,13 +169,24 @@ Bluetooth.prototype.start = function() {
 		var index = _this.localNames.indexOf(device_localName);
 		if(index != -1) {
 			console.log(_this.localNames[index] + " found!");
+            
+            _this.device = device;
+            
 			_this.connectDevice(device, function() {
 				noble.stopScanning();
-				_this.lightsOn();
-				_this.lightsOff();
-				_this.TemperatureNotify(true);
+				//_this.lightsOn();
+				//_this.lightsOff();
+				//_this.TemperatureNotify(true);
+                //_this.TemperatureNotify(false);
 			});
-			_this.device = device;
+            
+            setTimeout(function() {
+                if(_this.device.state != 'connected') {
+                    _this.device.disconnect();
+                    noble.startScanning();
+                    console.log("Disconnecting and retrying");
+                }
+            }, 5000);
 		} else {
 			console.log(device_localName);
 		}
@@ -176,7 +196,7 @@ Bluetooth.prototype.start = function() {
 };
 
 Bluetooth.prototype.TemperatureNotify = function(On) {
-	this.getCharacteristic(this.device, this.uuids.sonar_service, this.uuids.water_temp, function(characteristic) {
+	this.getCharacteristic(this.device, this.uuids.sonar_service, this.uuids.water_temp, function(characteristic, callback) {
 		if(characteristic != null) {
 			if(On) {
 				characteristic.on('read', function(data, isNotification) {
@@ -186,11 +206,13 @@ Bluetooth.prototype.TemperatureNotify = function(On) {
 					
 				characteristic.notify(true, function(error) {
 					console.log('Water temperature notification is on');
+                    callback();
 				});
 			}
 			else {
 				characteristic.notify(false, function(error) {
 					console.log('Water temperature notification is off');
+                    callback();
 				});	
 			}
 		}
@@ -212,10 +234,11 @@ Bluetooth.prototype.SonarOff = function() {
 
 /* LIGHT */
 Bluetooth.prototype.changeLight = function(value) {
-	this.getCharacteristic(this.device, this.uuids.sonar_service, this.uuids.light, function(characteristic) {
+	this.getCharacteristic(this.device, this.uuids.sonar_service, this.uuids.light, function(characteristic, callback) {
 		if(characteristic != null) {
 			characteristic.write(new Buffer([value]), true, function(error) {
 				console.log("Light has been changed to " + value);
+                callback();
 			});
 		}
 	});

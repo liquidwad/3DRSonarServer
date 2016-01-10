@@ -1,13 +1,13 @@
 'use strict';
 
 module.exports = {
-	Op: {
-		AccelEnable: 0,
-		AccelRange: 1,
-		AccelX: 2,
-		AccelY: 3,
-		AccelZ: 4,
-		AccelThreshold: 5,
+	sonar: {
+        AccelEnable: 0,
+        AccelRange: 1,
+        AccelX: 2,
+        AccelY: 3,
+        AccelZ: 4,
+        AccelThreshold: 5,
 		AccelAlert: 6,
 		AccelSelfTest: 7,
 		SonarEnable: 8,
