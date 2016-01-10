@@ -6,11 +6,16 @@ var _ = require('lodash'),
 	consoleStamp = require('console-stamp'),
 	shortid = require('shortid'),
 	config = require('./config'),
-	type = require('./packets/type');
-
+	type = require('./packets/type'),
+	bluetooth = require('./bluetooth');
 
 //set console format
 consoleStamp(console, "dd mmm HH:mm:ss");
+
+//setup bluetooth
+var bluetooth_controller = new bluetooth();
+
+bluetooth_controller.start();
 
 //Create server
 var server = net.createServer();
@@ -59,6 +64,8 @@ process.on('SIGINT', function() {
 	server.close(function(){
 		console.log('Stopped listening.');
     });
+	
+	bluetooth_controller.disconnect();
 
     process.exit();
 });
