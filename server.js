@@ -148,7 +148,7 @@ server.on('connection', function(socket) {
 	});
 
 	socket.on('error', function(e) {
-		console.log("Exception: " + JSON.stringify(e));
+		console.log("Exception: ", e);
 	});
 });
 
