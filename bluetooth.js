@@ -190,20 +190,29 @@ Bluetooth.prototype.start = function() {
 	console.log("Bluetooth controller started");
 };
 
-Bluetooth.prototype.changeValue = function(value, service, characteristic, done_cb) {
-    
+Bluetooth.prototype.changeValue = function(value, service_uuid, characteristic_uuid, done_cb) {
+     var _this = this;
+	this.getCharacteristic(this.device, service_uuid, characteristic_uuid, function(characteristic, callback) {
+		if(typeof characteristic !== 'undefined' && characteristic != null) {
+			characteristic.write(value, true, function(error) {
+                _this.logError(error);
+                callback();
+                done_cb();
+			});
+		}
+	});
 };
 
 Bluetooth.prototype.notify = function(notify_value, service_uuid, characteristic_uuid, read_cb, notify_on_cb, notify_off_cb) {
     var _this = this;
     this.getCharacteristic(this.device, service_uuid, characteristic_uuid, function(characteristic, callback) {
-        if(characteristic != null && notify_value) {
+        if(typeof characteristic !== 'undefined' && characteristic != null && notify_value) {
             characteristic.on('read', function(data, isNotification) {
                 read_cb(data);
             });
         }
         
-        if(characteristic != null) {
+        if(typeof characteristic !== 'undefined' && characteristic != null) {
             characteristic.notify((notify_value == 1 || notify_value == true), function(error) {
                 _this.logError(error);
                 callback();
@@ -218,84 +227,50 @@ Bluetooth.prototype.notify = function(notify_value, service_uuid, characteristic
     });
 };
 
-Bluetooth.prototype.TemperatureNotify = function(On, cb) {
+Bluetooth.prototype.TemperatureNotify = function(value, cb) {
     var _this = this;
     
-	this.getCharacteristic(this.device, this.uuids.sonar_service, this.uuids.water_temp, function(characteristic, callback) {
-		if(characteristic != null) {
-			if(On) {
-				characteristic.on('read', function(data, isNotification) {
-					var temp = common.parseCelcius( data.readUInt16LE(0) );
-                    
-                    if(_this.onReadWaterTemp != null) {
-                        _this.onReadWaterTemp(temp);
-                    }
-                    
-					console.log('Water temperature is ' + temp + ' C');
-				});
-					
-				characteristic.notify(true, function(error) {
-                    _this.logError(error);
-                    
-					console.log('Water temperature notification is on');
-                    callback();
-                    
-                    if(typeof cb !== 'undefined') {
-                        cb();
-                    }
-				});
-			}
-			else {
-				characteristic.notify(false, function(error) {
-                    _this.logError(error);
-					console.log('Water temperature notification is off');
-                    callback();
-                    
-                    if(typeof cb !== 'undefined') {
-                        cb();
-                    }
-				});	
-			}
-		}
-	});
+    this.notify(value, this.uuids.sonar_service, this.uuids.water_temp, function(data) {
+        var temp = common.parseCelcius( data.readUInt16LE(0) );
+        if(_this.onReadWaterTemp != null) {
+            _this.onReadWaterTemp(temp);
+        }
+        console.log('Water temperature is ' + temp + ' C');
+    }, function() {
+        console.log('Water temperature notification is on');
+        if(typeof cb !== 'undefined') {
+            cb();
+        }
+    }, function() {
+        console.log('Water temperature notification is off');
+        if(typeof cb !== 'undefined') {
+            cb();
+        }
+    });
 };
 
 /* LIGHT */
 Bluetooth.prototype.changeLight = function(value, cb) {
     var _this = this;
-	this.getCharacteristic(this.device, this.uuids.sonar_service, this.uuids.light, function(characteristic, callback) {
-		if(characteristic != null) {
-			characteristic.write(new Buffer([value]), true, function(error) {
-                _this.logError(error);
-                
-				console.log("Light has been changed to " + value);
-                callback();
-                
-                if(typeof cb !== 'undefined') {
-                    cb();
-                }
-			});
-		}
-	});
+    
+    this.changeValue(new Buffer([value]), this.uuids.sonar_service, this.uuids.light, function() {
+        console.log("Light has been changed to " + value);
+        if(typeof cb !== 'undefined') {
+            cb();
+        }
+    });
 };
 
 /*ECHOES*/
 Bluetooth.prototype.changeEchoEnable = function(value, cb) {
     var _this = this;
     
-	this.getCharacteristic(this.device, this.uuids.sonar_service, this.uuids.sonar_enable, function(characteristic, callback) {
-		if(characteristic != null) {
-			characteristic.write(new Buffer([value]), true, function(error) {
-                _this.logError(error);
-				console.log("Echoes have been " + (value ? "enabled" : "disabled"));
-                callback();
-                
-                if(typeof cb !== 'undefined') {
-                    cb();
-                }
-			});
-		}
-	});
+    _this.changeValue(new Buffer([value]), this.uuids.sonar_service, this.uuids.sonar_enable, function() {
+        console.log("Echoes have been " + (value ? "enabled" : "disabled"));
+        if(typeof cb !== 'undefined') {
+            cb();
+        }
+    });
 };
 
 Bluetooth.prototype.EchoNotify = function(value, cb) {
@@ -322,9 +297,12 @@ Bluetooth.prototype.EchoNotify = function(value, cb) {
 };
 
 Bluetooth.prototype.disableOnDisconnect = function() {
-    this.EchoNotify(0x00);
-    this.changeEchoEnable(0x00);
-    this.TemperatureNotify(0x00);
+    this.TemperatureNotify(false);
+    this.EchoNotify(false);
+    //this.changeEchoEnable(0);
+    
+    this.cachedServices = {};
+    this.cachedCharacteristics = {};
 }
 
 module.exports = Bluetooth;
