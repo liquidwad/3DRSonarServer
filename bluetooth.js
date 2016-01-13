@@ -190,6 +190,34 @@ Bluetooth.prototype.start = function() {
 	console.log("Bluetooth controller started");
 };
 
+Bluetooth.prototype.changeValue = function(value, service, characteristic, done_cb) {
+    
+};
+
+Bluetooth.prototype.notify = function(notify_value, service_uuid, characteristic_uuid, read_cb, notify_on_cb, notify_off_cb) {
+    var _this = this;
+    this.getCharacteristic(this.device, service_uuid, characteristic_uuid, function(characteristic, callback) {
+        if(characteristic != null && notify_value) {
+            characteristic.on('read', function(data, isNotification) {
+                read_cb(data);
+            });
+        }
+        
+        if(characteristic != null) {
+            characteristic.notify((notify_value == 1 || notify_value == true), function(error) {
+                _this.logError(error);
+                callback();
+
+                if(notify_value) {
+                    notify_on_cb();
+                } else {
+                    notify_off_cb();
+                }
+            });
+        }
+    });
+};
+
 Bluetooth.prototype.TemperatureNotify = function(On, cb) {
     var _this = this;
     
@@ -270,42 +298,27 @@ Bluetooth.prototype.changeEchoEnable = function(value, cb) {
 	});
 };
 
-Bluetooth.prototype.EchoNotify = function(On, cb) {
+Bluetooth.prototype.EchoNotify = function(value, cb) {
     var _this = this;
     
-	this.getCharacteristic(this.device, this.uuids.sonar_service, this.uuids.echoes, function(characteristic, callback) {
-		if(characteristic != null) {
-			if(On) {
-				characteristic.on('read', function(data, isNotification) {
-                            
-                    if(_this.onReadEchoes != null) {
-                        _this.onReadEchoes(data);
-                    }
-				});
-					
-				characteristic.notify(true, function(error) {
-                    _this.logError(error);
-					console.log('Echo notification is on');
-                    callback();
-                    
-                    if(typeof cb !== 'undefined') {
-                        cb();
-                    }
-				});
-			}
-			else {
-				characteristic.notify(false, function(error) {
-                    _this.logError(error);
-					console.log('Echo notification is off');
-                    callback();
-                    
-                    if(typeof cb !== 'undefined') {
-                        cb();
-                    }
-				});	
-			}
-		}
-	});
+    this.notify(value, this.uuids.sonar_service, this.uuids.echoes, function(data) {
+        if(_this.onReadEchoes != null) {
+            _this.onReadEchoes(data);
+        }
+    }, function() {
+        console.log('Echo notification is on');
+        
+        if(typeof cb !== 'undefined') {
+            cb();
+        }
+    }, function() {
+        console.log('Echo notification is off');
+        
+        if(typeof cb !== 'undefined') {
+            cb();
+        }
+    });
+
 };
 
 Bluetooth.prototype.disableOnDisconnect = function() {
