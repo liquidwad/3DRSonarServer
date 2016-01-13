@@ -16,5 +16,8 @@ module.exports = {
 		SonarLight: 11,
 		SonarTGCSelect: 12,
 		SonarWaterDetect: 13
-	}
+	},
+    server: {
+        Disconnect: 0
+    }
 }

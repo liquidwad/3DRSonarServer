@@ -9,6 +9,7 @@ var _ = require('lodash'),
     types = require('./packets/types'),
 	opcodes = require('./packets/opcodes'),
     sonarPackets = require('./packets/sonarpackets'),
+    serverPackets = require('./packets/serverpackets'),
     packetUtils = require('./packets/packetutils'),
 	bluetooth = require('./bluetooth'),
     async = require('async');
@@ -21,17 +22,19 @@ var bluetooth_controller = new bluetooth();
 
 bluetooth_controller.start();
 
+/* Common packet reading/writing utilities */
 var packet_utils = new packetUtils();
 
+/* Sonar packet handler */
 var sonar_packets = new sonarPackets(bluetooth_controller);
+var server_packets = new serverPackets(bluetooth_controller);
 
+/* Process queued packets */
 var packet_processor = function(packets_queue) {
     async.whilst(function() {
         return packets_queue.length > 0;
     }, function(callback) {
         var packet = packets_queue[0];
-        
-        console.log("Handling packet " + packet);
         
         var cb = function() {
           packets_queue.splice(0, 1);
@@ -45,6 +48,9 @@ var packet_processor = function(packets_queue) {
             case types.Motor:
                 break;
             case types.Camera:
+                break;
+            case types.Server:
+                server_packets.handlePacket(packet, cb);
                 break;
             default:
                 break;
@@ -69,9 +75,11 @@ server.on('connection', function(socket) {
     
     var packetsQueue = [];
     
+    /* Set socket on packet handlers */
+    sonar_packets.socket = client;
+    server_packets.socket = client;
+    
 	socket.on('data', function(data) {
-		console.log(socket.id + "packet: " + data);
-        
         if(packet != null) {
             packet = Buffer.concat([packet, data]);
         } else {
@@ -96,10 +104,14 @@ server.on('connection', function(socket) {
             return;
         }
         
-        var packetValue = packet_utils.getValue(packet, packetSize);
+        var packetValue = null;
         
-        if(packetValue == null) {
-            return;
+        if(packetSize > 0) {
+            packetValue = packet_utils.getValue(packet, packetSize);
+            
+            if(packetValue == null) {
+                return;
+            }
         }
         
         var params = {
@@ -126,10 +138,13 @@ server.on('connection', function(socket) {
         } else {
             packet = null;
         }
+        
+        //console.log("Recieved ", params, " from client");
 	});
 
 	socket.on('disconnect', function() {
-		console.log("disconnect");
+		console.log("[" + socket.id + "][DISCONNECTED]");
+        bluetooth_controller.disableOnDisconnect();
 	});
 
 	socket.on('error', function(e) {

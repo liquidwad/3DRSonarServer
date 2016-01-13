@@ -35,5 +35,15 @@ PacketUtils.prototype.getValue = function(packet, length) {
     return null;
 };
 
+PacketUtils.prototype.setHeader = function(packet, size, type, opcode) {
+    /* Length of packet data */
+    packet.writeInt32LE(size, 0);
+        
+    /* packet type */
+    packet.writeInt8(type, 4);
+        
+    /* packet opcode */
+    packet.writeInt8(opcode, 5);
+};
 
 module.exports = PacketUtils;
