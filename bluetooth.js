@@ -213,6 +213,7 @@ Bluetooth.prototype.notify = function(notify_value, service_uuid, characteristic
         }
         
         if(typeof characteristic !== 'undefined' && characteristic != null) {
+            console.log(characteristic);
             characteristic.notify((notify_value == 1 || notify_value == true), function(error) {
                 _this.logError(error);
                 callback();
