@@ -168,6 +168,11 @@ Bluetooth.prototype.start = function() {
 			_this.connectDevice(device, function() {
 				noble.stopScanning();
 				console.log("[Noble] Scanning has stopped");
+				
+				_this.device.on('disconnect', function() {
+					console.log(_this.device.advertisement.localName, "has disconnected");
+					noble.startScanning();
+				});
 			});
             
             setTimeout(function() {
@@ -176,7 +181,7 @@ Bluetooth.prototype.start = function() {
                     noble.startScanning();
                     console.log("Disconnecting and retrying");
                 }
-            }, 5000);
+            }, 20000);
 		} else {
 			console.log(device_localName);
 		}
