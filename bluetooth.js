@@ -47,6 +47,99 @@ Bluetooth.prototype.logError = function(error) {
 	return false;
 };
 
+Bluetooth.prototype.discoverAll = function() {
+	var _this = this;
+	this.device.discoverServices([], function(error, services) {
+      var serviceIndex = 0;
+
+      async.whilst(
+        function () {
+          return (serviceIndex < services.length);
+        },
+        function(callback) {
+          var service = services[serviceIndex];
+          var serviceInfo = service.uuid;
+
+          if (service.name) {
+            serviceInfo += ' (' + service.name + ')';
+          }
+          console.log(serviceInfo);
+
+          service.discoverCharacteristics([], function(error, characteristics) {
+            var characteristicIndex = 0;
+
+            async.whilst(
+              function () {
+                return (characteristicIndex < characteristics.length);
+              },
+              function(callback) {
+                var characteristic = characteristics[characteristicIndex];
+                var characteristicInfo = '  ' + characteristic.uuid;
+
+                if (characteristic.name) {
+                  characteristicInfo += ' (' + characteristic.name + ')';
+                }
+
+                async.series([
+                  function(callback) {
+                    characteristic.discoverDescriptors(function(error, descriptors) {
+                      async.detect(
+                        descriptors,
+                        function(descriptor, callback) {
+                          return callback(descriptor.uuid === '2901');
+                        },
+                        function(userDescriptionDescriptor){
+                          if (userDescriptionDescriptor) {
+                            userDescriptionDescriptor.readValue(function(error, data) {
+                              if (data) {
+                                characteristicInfo += ' (' + data.toString() + ')';
+                              }
+                              callback();
+                            });
+                          } else {
+                            callback();
+                          }
+                        }
+                      );
+                    });
+                  },
+                  function(callback) {
+                        characteristicInfo += '\n    properties  ' + characteristic.properties.join(', ');
+
+                    if (characteristic.properties.indexOf('read') !== -1) {
+                      characteristic.read(function(error, data) {
+                        if (data) {
+                          var string = data.toString('ascii');
+
+                          characteristicInfo += '\n    value       ' + data.toString('hex') + ' | \'' + string + '\'';
+                        }
+                        callback();
+                      });
+                    } else {
+                      callback();
+                    }
+                  },
+                  function() {
+                    console.log(characteristicInfo);
+                    characteristicIndex++;
+                    callback();
+                  }
+                ]);
+              },
+              function(error) {
+                serviceIndex++;
+                callback();
+              }
+            );
+          });
+        },
+        function (err) {
+          _this.device.disconnect();
+        }
+      );
+    });	
+};
+
 Bluetooth.prototype.discoverService = function(device, serviceUUID, callback) {
 	var _this = this;
 	
@@ -105,7 +198,7 @@ Bluetooth.prototype.getCharacteristic = function(serviceUUID, characteristicUUID
 			_this.discoverService(_this.device, params.serviceUUID, function(service) {
 				
 				if( service == null ) {
-					console.log("No service has been 'found'", _this.device);
+					console.log("No service has been 'found'");
 					async_callback();
 					return;
 				}
@@ -132,7 +225,6 @@ Bluetooth.prototype.connectDevice = function(device, callback) {
 			console.log("Connected to " + device.advertisement.localName);
 		} else {
 			console.log("Couldn't connect to " + device.advertisement.localName);
-			console.log(device);
 		}
 		
 		callback();
@@ -170,6 +262,7 @@ Bluetooth.prototype.start = function() {
 			_this.connectDevice(device, function() {
 				noble.stopScanning();
 				console.log("[Noble] Scanning has stopped");
+				_this.discoverAll();
 			});
             
             setTimeout(function() {
