@@ -15,8 +15,8 @@ Bluetooth.prototype.uuids = {
 	accel_z: 			'1791ffa5385311e3aa6e0800200c9a66',
 	accel_threshold: 	'1791FFA6385311E3AA6E0800200C9A66',
 	accel_alert: 		'1791FFA7385311E3AA6E0800200C9A66',
-	accel_self_test: 	'1791FF90385311E3AA6E0800200C9A66',
-	sonar_service: 		'1791ff90385311e3aa6e0800200c9a66',
+	accel_self_test: 	'1791FFA8385311E3AA6E0800200C9A66',
+	sonar_service: 		'1791FF90385311E3AA6E0800200C9A66',
 	sonar_enable: 		'1791FF91385311E3AA6E0800200C9A66',
 	water_temp: 		'1791FF92385311E3AA6E0800200C9A66',
 	echoes: 			'1791FF93385311E3AA6E0800200C9A66',
@@ -52,7 +52,7 @@ Bluetooth.prototype.logError = function(error) {
 Bluetooth.prototype.discoverService = function(device, serviceUUID, callback) {
 	var _this = this;
 	
-	if( serviceUUID in this.cachedServices ) {
+	if( serviceUUID in this.cachedServices) {
 		console.log("From cache " + serviceUUID);
 		callback( this.cachedServices[serviceUUID] );
 	} else {
@@ -68,7 +68,7 @@ Bluetooth.prototype.discoverService = function(device, serviceUUID, callback) {
 			var service = services[0];
 			
 			if(typeof service !== 'undefined') {
-				_this.cachedServices[serviceUUID] = service;
+				//_this.cachedServices[serviceUUID] = service;
                 console.log("Found service " + serviceUUID);
 				callback(service);
 			} else {
@@ -93,7 +93,7 @@ Bluetooth.prototype.discoverCharacteristics = function(service, characteristicUU
 				callback(null);
 			} else {
 				var characteristic = characteristics[0];
-				_this.cachedCharacteristics[characteristicUUID] = characteristic;
+				//_this.cachedCharacteristics[characteristicUUID] = characteristic;
 				console.log("Found characteristic " + characteristicUUID);
 				callback(characteristic);
 			}
@@ -213,7 +213,7 @@ Bluetooth.prototype.notify = function(notify_value, service_uuid, characteristic
         }
         
         if(typeof characteristic !== 'undefined' && characteristic != null) {
-            console.log(characteristic);
+            //console.log(characteristic);
             characteristic.notify((notify_value == 1 || notify_value == true), function(error) {
                 _this.logError(error);
                 callback();
@@ -266,6 +266,7 @@ Bluetooth.prototype.changeLight = function(value, cb) {
 Bluetooth.prototype.changeEchoEnable = function(value, cb) {
     var _this = this;
     
+	console.log("Attempting to set echo enable to " + value);
     _this.changeValue(new Buffer([value]), this.uuids.sonar_service, this.uuids.sonar_enable, function() {
         console.log("Echoes have been " + (value ? "enabled" : "disabled"));
         if(typeof cb !== 'undefined') {

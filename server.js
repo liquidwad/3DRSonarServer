@@ -144,7 +144,7 @@ server.on('connection', function(socket) {
 
 	socket.on('disconnect', function() {
 		console.log("[" + socket.id + "][DISCONNECTED]");
-        bluetooth_controller.disableOnDisconnect();
+        //bluetooth_controller.disableOnDisconnect();
 	});
 
 	socket.on('error', function(e) {
