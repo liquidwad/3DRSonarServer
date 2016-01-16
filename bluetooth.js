@@ -7,22 +7,22 @@ var noble = require('noble'),
 var Bluetooth = function() { };
 
 Bluetooth.prototype.uuids = {
-	accel_service: 		'1791FFA0385311E3AA6E0800200C9A66',
-	accel_enable: 		'1791FFA1385311E3AA6E0800200C9A66',	
+	accel_service: 		'1791ffa0385311e3aa6e0800200c9a66',
+	accel_enable: 		'1791ffa1385311e3aa6e0800200c9a66',	
 	accel_range: 		'1791ffa2385311e3aa6e0800200c9a66',
 	accel_x: 			'1791ffa3385311e3aa6e0800200c9a66',
 	accel_y: 			'1791ffa4385311e3aa6e0800200c9a66',
 	accel_z: 			'1791ffa5385311e3aa6e0800200c9a66',
-	accel_threshold: 	'1791FFA6385311E3AA6E0800200C9A66',
-	accel_alert: 		'1791FFA7385311E3AA6E0800200C9A66',
-	accel_self_test: 	'1791FFA8385311E3AA6E0800200C9A66',
-	sonar_service: 		'1791FF90385311E3AA6E0800200C9A66',
-	sonar_enable: 		'1791FF91385311E3AA6E0800200C9A66',
-	water_temp: 		'1791FF92385311E3AA6E0800200C9A66',
-	echoes: 			'1791FF93385311E3AA6E0800200C9A66',
-	light: 				'1791FF94385311E3AA6E0800200C9A66',
-	tgc_select: 		'1791FF96385311E3AA6E0800200C9A66',
-	water_detect_adc: 	'1791FF9C385311E3AA6E0800200C9A66'
+	accel_threshold: 	'1791ffa6385311e3aa6e0800200c9a66',
+	accel_alert: 		'1791ffa7385311e3aa6e0800200c9a66',
+	accel_self_test: 	'1791ffa8385311e3aa6e0800200c9a66',
+	sonar_service: 		'1791ff90385311e3aa6e0800200c9a66',
+	sonar_enable: 		'1791ff91385311e3aa6e0800200c9a66',
+	water_temp: 		'1791ff92385311e3aa6e0800200c9a66',
+	echoes: 			'1791ff93385311e3aa6e0800200c9a66',
+	light: 				'1791ff94385311e3aa6e0800200c9a66',
+	tgc_select: 		'1791ff96385311e3aa6e0800200c9a66',
+	water_detect_adc: 	'1791ff9c385311e3aa6e0800200c9a66'
 };
 
 Bluetooth.prototype.localNames = ['iBobber', 'ReelSonar v1', 'ReelSonar'];
@@ -38,8 +38,8 @@ Bluetooth.prototype.getCallback = function(uuid) {
 };
 
 Bluetooth.prototype.logError = function(error) {
-   //if(typeof error !== 'undefined' && error != null) {
-   if(typeof error !== 'undefined') {
+   if(typeof error !== 'undefined' && error != null) {
+   //if(typeof error !== 'undefined') {
         console.log("[LOG][ERROR]", error);
 		return true;
     }
@@ -153,6 +153,8 @@ Bluetooth.prototype.discoverService = function(device, serviceUUID, callback) {
 		}
 			
 		var service = services[0];
+		
+		console.log(services);
 			
 		if(typeof service !== 'undefined') {
 			console.log("Found service " + serviceUUID);
