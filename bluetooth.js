@@ -46,7 +46,10 @@ Bluetooth.prototype.getCallback = function(uuid) {
 Bluetooth.prototype.logError = function(error) {
     if(typeof error !== 'undefined' && error != null) {
         console.log(error);
+		return true;
     }
+	
+	return false;
 };
 
 Bluetooth.prototype.discoverService = function(device, serviceUUID, callback) {
@@ -130,12 +133,12 @@ Bluetooth.prototype.getCharacteristic = function(device, serviceUUID, characteri
 };
 
 Bluetooth.prototype.connectDevice = function(device, callback) {
+	var _this = this;
+	
 	console.log("Connecting to " + device.advertisement.localName);
 	
 	device.connect(function(error) {
-		if(typeof error !== 'undefined') {
-			console.log(error);
-		} else {
+		if(!_this.logError(error)) {
 			console.log("Connected to " + device.advertisement.localName);
 		}
 		
@@ -173,6 +176,7 @@ Bluetooth.prototype.start = function() {
             
 			_this.connectDevice(device, function() {
 				noble.stopScanning();
+				console.log("[Noble] Scanning has stopped");
 			});
             
             setTimeout(function() {
