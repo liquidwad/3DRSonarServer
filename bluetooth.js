@@ -27,13 +27,7 @@ Bluetooth.prototype.uuids = {
 
 Bluetooth.prototype.localNames = ['iBobber', 'ReelSonar v1', 'ReelSonar'];
 
-Bluetooth.prototype.cachedServices = {};
-
-Bluetooth.prototype.cachedCharacteristics = {};
-
 Bluetooth.prototype.bluetoothQueue = [];
-
-Bluetooth.prototype.onReadWaterTemp = null;
 
 Bluetooth.prototype.registerCallback = function(uuid, callback) {
     this.onReadCallbacks[uuid] = callback;
@@ -55,53 +49,41 @@ Bluetooth.prototype.logError = function(error) {
 Bluetooth.prototype.discoverService = function(device, serviceUUID, callback) {
 	var _this = this;
 	
-	if( serviceUUID in this.cachedServices) {
-		console.log("From cache " + serviceUUID);
-		callback( this.cachedServices[serviceUUID] );
-	} else {
-		device.discoverServices([serviceUUID], function(error, services) {
-            _this.logError(error);
+	device.discoverServices([serviceUUID], function(error, services) {
+		_this.logError(error);
 			
-			if(services.length == 0) {
-				console.log("No service found");
-				callback(null);
-				return;
-			}
+		if(services.length == 0) {
+			console.log("No service found");
+			callback(null);
+			return;
+		}
 			
-			var service = services[0];
+		var service = services[0];
 			
-			if(typeof service !== 'undefined') {
-				//_this.cachedServices[serviceUUID] = service;
-                console.log("Found service " + serviceUUID);
-				callback(service);
-			} else {
-				callback(null);
-			}
-		});
-	}
+		if(typeof service !== 'undefined') {
+			console.log("Found service " + serviceUUID);
+			callback(service);
+		} else {
+			callback(null);
+		}
+	});
 };
 
 Bluetooth.prototype.discoverCharacteristics = function(service, characteristicUUID, callback) {
 	var _this = this;
 	
-	if(characteristicUUID in this.cachedCharacteristics) {
-		console.log("From cache " + characteristicUUID);
-		callback(this.cachedCharacteristics[characteristicUUID]);
-	} else {
-		service.discoverCharacteristics([characteristicUUID], function(error, characteristics) {
-            _this.logError(error);
+	service.discoverCharacteristics([characteristicUUID], function(error, characteristics) {
+		_this.logError(error);
 				
-			if(characteristics.length == 0) {
-				console.log("No characteristics found");
-				callback(null);
-			} else {
-				var characteristic = characteristics[0];
-				//_this.cachedCharacteristics[characteristicUUID] = characteristic;
-				console.log("Found characteristic " + characteristicUUID);
-				callback(characteristic);
-			}
-		});
-	}
+		if(characteristics.length == 0) {
+			console.log("No characteristics found");
+			callback(null);
+		} else {
+			var characteristic = characteristics[0];
+			console.log("Found characteristic " + characteristicUUID);
+			callback(characteristic);
+		}
+	});
 };
 
 Bluetooth.prototype.getCharacteristic = function(device, serviceUUID, characteristicUUID, callback) {
@@ -217,7 +199,6 @@ Bluetooth.prototype.notify = function(notify_value, service_uuid, characteristic
         }
         
         if(typeof characteristic !== 'undefined' && characteristic != null) {
-            //console.log(characteristic);
             characteristic.notify((notify_value == 1 || notify_value == true), function(error) {
                 _this.logError(error);
                 callback();
@@ -237,7 +218,7 @@ Bluetooth.prototype.TemperatureNotify = function(value, cb) {
     
     this.notify(value, this.uuids.sonar_service, this.uuids.water_temp, function(data) {
         var temp = common.parseCelcius( data.readUInt16LE(0) );
-        if(_this.onReadWaterTemp != null) {
+        if(typeof _this.onReadWaterTemp !== 'undefined') {
             _this.onReadWaterTemp(temp);
         }
         console.log('Water temperature is ' + temp + ' C');
@@ -283,7 +264,7 @@ Bluetooth.prototype.EchoNotify = function(value, cb) {
     var _this = this;
     
     this.notify(value, this.uuids.sonar_service, this.uuids.echoes, function(data) {
-        if(_this.onReadEchoes != null) {
+        if(typeof _this.onReadEchoes !== 'undefined') {
             _this.onReadEchoes(data);
         }
     }, function() {
@@ -306,9 +287,6 @@ Bluetooth.prototype.disableOnDisconnect = function() {
     this.TemperatureNotify(false);
     this.EchoNotify(false);
     //this.changeEchoEnable(0);
-    
-    this.cachedServices = {};
-    this.cachedCharacteristics = {};
 }
 
 module.exports = Bluetooth;
