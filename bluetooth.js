@@ -40,7 +40,7 @@ Bluetooth.prototype.getCallback = function(uuid) {
 Bluetooth.prototype.logError = function(error) {
    //if(typeof error !== 'undefined' && error != null) {
    if(typeof error !== 'undefined') {
-        console.log("[LOG][ERROR] ", error);
+        console.log("[LOG][ERROR]", error);
 		return true;
     }
 	
@@ -130,6 +130,9 @@ Bluetooth.prototype.connectDevice = function(device, callback) {
 		
 		if(!_this.logError(error)) {
 			console.log("Connected to " + device.advertisement.localName);
+		} else {
+			console.log("Couldn't connect to " + device.advertisement.localName);
+			console.log(device);
 		}
 		
 		callback();
