@@ -134,7 +134,7 @@ Bluetooth.prototype.discoverAll = function() {
           });
         },
         function (err) {
-          _this.device.disconnect();
+          //_this.device.disconnect();
         }
       );
     });	
