@@ -1,2 +1,4 @@
 node_modules/
 .settings/
+.DS_Store
+npm-debug.log
