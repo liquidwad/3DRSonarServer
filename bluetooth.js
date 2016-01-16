@@ -40,7 +40,7 @@ Bluetooth.prototype.getCallback = function(uuid) {
 Bluetooth.prototype.logError = function(error) {
     if(typeof error !== 'undefined' && error != null) {
         console.log(error);
-		return true;
+		return true; // i need to know who throws the null noble does you noob wher
     }
 	
 	return false;
@@ -120,6 +120,7 @@ Bluetooth.prototype.connectDevice = function(device, callback) {
 	console.log("Connecting to " + device.advertisement.localName);
 	
 	device.connect(function(error) {
+		//we give noble a callback function and it sends a error variable to it and that eror is null ? yes who calls connectDevice we are? where  idoio
 		if(!_this.logError(error)) {
 			console.log("Connected to " + device.advertisement.localName);
 		}
@@ -156,6 +157,8 @@ Bluetooth.prototype.start = function() {
             
             _this.device = device;
             
+			if( device === null)
+				console.log("Device is null");
 			_this.connectDevice(device, function() {
 				noble.stopScanning();
 				console.log("[Noble] Scanning has stopped");
