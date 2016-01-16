@@ -38,9 +38,10 @@ Bluetooth.prototype.getCallback = function(uuid) {
 };
 
 Bluetooth.prototype.logError = function(error) {
-    if(typeof error !== 'undefined' && error != null) {
-        console.log(error);
-		return true; // i need to know who throws the null noble does you noob wher
+   //if(typeof error !== 'undefined' && error != null) {
+   if(typeof error !== 'undefined') {
+        console.log("[LOG][ERROR] ", error);
+		return true;
     }
 	
 	return false;
@@ -86,11 +87,10 @@ Bluetooth.prototype.discoverCharacteristics = function(service, characteristicUU
 	});
 };
 
-Bluetooth.prototype.getCharacteristic = function(device, serviceUUID, characteristicUUID, callback) {
+Bluetooth.prototype.getCharacteristic = function(serviceUUID, characteristicUUID, callback) {
 	var _this = this;
 	
 	var params = {
-		device: device,
 		serviceUUID: serviceUUID,
 		characteristicUUID: characteristicUUID,
 		callback: callback	
@@ -102,7 +102,14 @@ Bluetooth.prototype.getCharacteristic = function(device, serviceUUID, characteri
 			return _this.bluetoothQueue.length > 0;
 		}, function(async_callback) {
 			var params = _this.bluetoothQueue[0];
-			_this.discoverService(params.device, params.serviceUUID, function(service) {
+			_this.discoverService(_this.device, params.serviceUUID, function(service) {
+				
+				if( service == null ) {
+					console.log("No service has been 'found'", _this.device);
+					async_callback();
+					return;
+				}
+				
 				_this.discoverCharacteristics(service, params.characteristicUUID, function(characteristic) {
 					_this.bluetoothQueue.splice(0, 1);
 					params.callback(characteristic, async_callback);
@@ -120,7 +127,7 @@ Bluetooth.prototype.connectDevice = function(device, callback) {
 	console.log("Connecting to " + device.advertisement.localName);
 	
 	device.connect(function(error) {
-		//we give noble a callback function and it sends a error variable to it and that eror is null ? yes who calls connectDevice we are? where  idoio
+		
 		if(!_this.logError(error)) {
 			console.log("Connected to " + device.advertisement.localName);
 		}
@@ -156,9 +163,7 @@ Bluetooth.prototype.start = function() {
 			console.log(_this.localNames[index] + " found!");
             
             _this.device = device;
-            
-			if( device === null)
-				console.log("Device is null");
+
 			_this.connectDevice(device, function() {
 				noble.stopScanning();
 				console.log("[Noble] Scanning has stopped");
@@ -181,7 +186,7 @@ Bluetooth.prototype.start = function() {
 
 Bluetooth.prototype.changeValue = function(value, service_uuid, characteristic_uuid, done_cb) {
      var _this = this;
-	this.getCharacteristic(this.device, service_uuid, characteristic_uuid, function(characteristic, callback) {
+	this.getCharacteristic(service_uuid, characteristic_uuid, function(characteristic, callback) {
 		if(typeof characteristic !== 'undefined' && characteristic != null) {
 			characteristic.write(value, true, function(error) {
                 _this.logError(error);
@@ -194,7 +199,7 @@ Bluetooth.prototype.changeValue = function(value, service_uuid, characteristic_u
 
 Bluetooth.prototype.notify = function(notify_value, service_uuid, characteristic_uuid, read_cb, notify_on_cb, notify_off_cb) {
     var _this = this;
-    this.getCharacteristic(this.device, service_uuid, characteristic_uuid, function(characteristic, callback) {
+    this.getCharacteristic(service_uuid, characteristic_uuid, function(characteristic, callback) {
         if(typeof characteristic !== 'undefined' && characteristic != null && notify_value) {
             characteristic.on('read', function(data, isNotification) {
                 read_cb(data);
@@ -240,8 +245,6 @@ Bluetooth.prototype.TemperatureNotify = function(value, cb) {
 
 /* LIGHT */
 Bluetooth.prototype.changeLight = function(value, cb) {
-    var _this = this;
-    
     this.changeValue(new Buffer([value]), this.uuids.sonar_service, this.uuids.light, function() {
         console.log("Light has been changed to " + value);
         if(typeof cb !== 'undefined') {
@@ -290,6 +293,6 @@ Bluetooth.prototype.disableOnDisconnect = function() {
     this.TemperatureNotify(false);
     this.EchoNotify(false);
     //this.changeEchoEnable(0);
-}
+};
 
 module.exports = Bluetooth;
