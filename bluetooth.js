@@ -120,6 +120,14 @@ Bluetooth.prototype.getCharacteristic = function(serviceUUID, characteristicUUID
 	}
 };
 
+Bluetooth.prototype.isConnected = function() {
+    if(typeof this.device !== 'undefined' && this.device.state == 'connected') {
+        return true;
+    }
+    
+    return false;
+}
+
 Bluetooth.prototype.connectDevice = function(device, callback) {
 	var _this = this;
 	
@@ -129,6 +137,11 @@ Bluetooth.prototype.connectDevice = function(device, callback) {
 		
 		if(!_this.logError(error)) {
 			console.log("Connected to " + device.advertisement.localName);
+            
+            if(typeof _this.onConnected !== 'undefined') {
+                _this.onConnected();
+                _this.onConnected = undefined;
+            }
 		} else {
 			console.log("Couldn't connect to " + device.advertisement.localName);
 		}
@@ -167,21 +180,15 @@ Bluetooth.prototype.start = function() {
 
 			_this.connectDevice(device, function() {
 				noble.stopScanning();
-				console.log("[Noble] Scanning has stopped");
-				
-				_this.device.on('disconnect', function() {
+                
+				_this.device.once('disconnect', function() {
+                    if(typeof _this.onDisconnect !== 'undefined') {
+                        _this.onDisconnect();
+                    }
 					console.log(_this.device.advertisement.localName, "has disconnected");
 					noble.startScanning();
 				});
 			});
-            
-            setTimeout(function() {
-                if(_this.device.state != 'connected') {
-                    _this.device.disconnect();
-                    noble.startScanning();
-                    console.log("Disconnecting and retrying");
-                }
-            }, 20000);
 		} else {
 			console.log(device_localName);
 		}

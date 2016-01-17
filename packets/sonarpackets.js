@@ -22,7 +22,9 @@ var SonarPackets = function(bluetooth) {
         if(_this.socket != null) {
             try {
                 _this.socket.write(packet);
-            } catch(err) { }
+            } catch(err) { 
+                console.log("Exception ReadWaterTemp", err);
+            }
             console.log("Water Temp " + temp + " packet send to client");
         }
     };
@@ -38,9 +40,25 @@ var SonarPackets = function(bluetooth) {
         if(_this.socket != null) {
             try {
                 _this.socket.write(packet);
-            } catch(err) { }
+            } catch(err) { 
+                console.log("Exception Echoes", err);
+            }
             
             console.log("Echoes ", data, " packet sent to client");
+        }
+    };
+    
+    this.bluetooth.onDisconnect = function() {
+        var packet = new Buffer(6);
+        _this.packet_utils.setHeader(packet, 0, types.Sonar, opcodes.sonar.BleDisconect);
+        
+        if(_this.socket != null) {
+            try {
+                _this.socket.write(packet);
+            } catch(err) { 
+                console.log("Exception onDisconnect", err);
+            }
+            console.log("Bluetooth disconnect packet sent to client");
         }
     };
 };
@@ -57,7 +75,36 @@ SonarPackets.prototype.handlePacket = function(packet, callback) {
 };
 
 SonarPackets.prototype.handleReadPacket = function(packet, callback) {
-    Console.log("HandleRead");
+    switch( packet.opcode ) {
+        case opcodes.sonar.BleConnect:
+            console.log("Recieved 'Ble Status' packet from client");
+        
+            var onConnected = function() {
+                var packet = new Buffer(6);
+                _this.packet_utils.setHeader(packet, 0, types.Sonar, opcodes.sonar.BleConnect);
+                
+                 if(_this.socket != null) {
+                    try {
+                        _this.socket.write(packet);
+                    } catch(err) { 
+                        console.log("Exception OnConnected", err);
+                    }
+                    
+                    console.log("Connected packet sent to client");
+                }
+                
+                callback();
+            };
+            
+            if(this.bluetooth.isConnected()) {
+                onConnected();
+            } else {
+                this.bluetooth.onConnected = onConnected;
+            }
+            break;
+        default:
+            break;
+    }
 };
 
 SonarPackets.prototype.handleWritePacket = function(packet, callback) {

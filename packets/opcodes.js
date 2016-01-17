@@ -15,7 +15,9 @@ module.exports = {
 		SonarEchoes: 10,
 		SonarLight: 11,
 		SonarTGCSelect: 12,
-		SonarWaterDetect: 13
+		SonarWaterDetect: 13,
+        BleConnect: 14,
+        BleDisconect: 15
 	},
     server: {
         Disconnect: 0
