@@ -50,7 +50,7 @@ var SonarPackets = function(bluetooth) {
     
     this.bluetooth.onDisconnect = function() {
         var packet = new Buffer(6);
-        _this.packet_utils.setHeader(packet, 0, types.Sonar, opcodes.sonar.BleDisconect);
+        _this.packet_utils.setHeader(packet, 0, types.Sonar, opcodes.sonar.BleDisconnect);
         
         if(_this.socket != null) {
             try {
@@ -75,6 +75,8 @@ SonarPackets.prototype.handlePacket = function(packet, callback) {
 };
 
 SonarPackets.prototype.handleReadPacket = function(packet, callback) {
+    var _this = this;
+    
     switch( packet.opcode ) {
         case opcodes.sonar.BleConnect:
             console.log("Recieved 'Ble Status' packet from client");
