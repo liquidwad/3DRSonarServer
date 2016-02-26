@@ -31,7 +31,10 @@ ServerPackets.prototype.handleReadPacket = function(packet, callback) {
                 console.log("[" + this.socket.id + "][DISCONNECTED]");
                 try {
                     this.socket.destroy();
-                    this.bluetooth.disableOnDisconnect();
+                    
+                    if(typeof this.bluetooth !== 'undefined') {
+                        this.bluetooth.disableOnDisconnect();
+                    }
                 } catch(err) { }
             }
             callback();

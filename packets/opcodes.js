@@ -21,5 +21,10 @@ module.exports = {
 	},
     server: {
         Disconnect: 0
+    },
+    motor: {
+        Gripper: 0,
+        MotorDrive: 1,
+        MotorHold: 2
     }
 }

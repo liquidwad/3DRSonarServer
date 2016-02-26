@@ -10,9 +10,12 @@ var _ = require('lodash'),
 	opcodes = require('./packets/opcodes'),
     sonarPackets = require('./packets/sonarpackets'),
     serverPackets = require('./packets/serverpackets'),
+    motorPackets = require('./packets/motorpackets'),
     packetUtils = require('./packets/packetutils'),
 	bluetooth = require('./bluetooth'),
-    async = require('async');
+    async = require('async'),
+    servo = require('./servo'),
+    motors = require('./motors')
 
 //set console format
 consoleStamp(console, "dd mmm HH:mm:ss");
@@ -28,6 +31,7 @@ var packet_utils = new packetUtils();
 /* Sonar packet handler */
 var sonar_packets = new sonarPackets(bluetooth_controller);
 var server_packets = new serverPackets(bluetooth_controller);
+var motor_packets = new motorPackets( new servo(0), new motors() );
 
 /* Process queued packets */
 var packet_processor = function(packets_queue) {
@@ -40,16 +44,21 @@ var packet_processor = function(packets_queue) {
           packets_queue.splice(0, 1);
           callback();  
         };
-        
+    
         switch(packet.type) {
             case types.Sonar:
+                //cb();
+                console.log("Received sonar packet");
                 sonar_packets.handlePacket(packet, cb);
                 break;
             case types.Motor:
+                console.log("Received motor packet");
+                motor_packets.handlePacket(packet, cb);
                 break;
             case types.Camera:
                 break;
             case types.Server:
+                console.log("Received server packet");
                 server_packets.handlePacket(packet, cb);
                 break;
             default:
@@ -57,6 +66,28 @@ var packet_processor = function(packets_queue) {
         }
     });
 };
+
+var SerialPort = require("serialport").SerialPort;
+var serialPort = new SerialPort("/dev/ttyMFD2", {
+    baudrate: 115200
+});
+
+serialPort.on('open' , function() {
+    console.log("serial port open");
+    
+    serialPort.on('data', function(data) {
+        console.log('data received: ' + data);
+    });
+    
+    serialPort.on('error', function(message) {
+        console.log(message);
+    });
+    
+    serialPort.write("Test", function(err, result) {
+        console.log('err ' + err);
+        console.log('Results ' + result);
+    });
+});
 
 //Create server
 var server = net.createServer();
@@ -78,8 +109,10 @@ server.on('connection', function(socket) {
     /* Set socket on packet handlers */
     sonar_packets.socket = client;
     server_packets.socket = client;
+    motor_packets.socket = client;
     
 	socket.on('data', function(data) {
+        
         if(packet != null) {
             packet = Buffer.concat([packet, data]);
         } else {
@@ -124,8 +157,10 @@ server.on('connection', function(socket) {
         if(packetsQueue.length == 0) {
             packetsQueue.push(params);
             packet_processor(packetsQueue);
+            console.log("packet added and packet_rpcoess started", params);
         } else {
             packetsQueue.push(params);
+            console.log("packet added", params);
         }
 
         /* Reset for next packet */
@@ -135,6 +170,7 @@ server.on('connection', function(socket) {
             var temp_buffer = new Buffer(packet.length-total_packet_size);
             packet.copy(temp_buffer, 0, total_packet_size);
             packet = temp_buffer;
+            console.log("Copy over rest");
         } else {
             packet = null;
         }

@@ -44,7 +44,7 @@ var SonarPackets = function(bluetooth) {
                 console.log("Exception Echoes", err);
             }
             
-            console.log("Echoes ", data, " packet sent to client");
+            //console.log("Echoes ", data, " packet sent to client");
         }
     };
     
