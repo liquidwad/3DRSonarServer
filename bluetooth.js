@@ -1,6 +1,7 @@
 var noble = require('noble'),
 	async = require('async'),
-	common = require('./common');
+	common = require('./common'),
+    sleep = require('sleep');
 
 ///28:cf:e9:4e:70:18 maybe we need this later?
 //localname = ReelSona
@@ -166,7 +167,7 @@ Bluetooth.prototype.start = function() {
 			console.log("Scanning started");
 		} else {
 			noble.stopScanning();
-			console.log("Scanning stopped");
+			console.log("Scanning stopped (state: " + state + ")");
 		}
 	});
 	
@@ -305,7 +306,7 @@ Bluetooth.prototype.EchoNotify = function(value, cb) {
 Bluetooth.prototype.disableOnDisconnect = function() {
     this.TemperatureNotify(false);
     this.EchoNotify(false);
-    //this.changeEchoEnable(0);
+    this.changeEchoEnable(0);
 };
 
 module.exports = Bluetooth;

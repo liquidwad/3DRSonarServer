@@ -15,23 +15,126 @@ var _ = require('lodash'),
 	bluetooth = require('./bluetooth'),
     async = require('async'),
     servo = require('./servo'),
-    motors = require('./motors')
+    motors = require('./motors'),
+    sleep = require('sleep'),
+    SerialPort = require("serialport").SerialPort,
+    SegfaultHandler = require('segfault-handler');
+
 
 //set console format
 consoleStamp(console, "dd mmm HH:mm:ss");
 
-//setup bluetooth
-var bluetooth_controller = new bluetooth();
 
-bluetooth_controller.start();
+// Optionally specify a callback function for custom logging. This feature is currently only supported for Node.js >= v0.12 running on Linux.
+SegfaultHandler.registerHandler("crash.log", function(signal, address, stack) {
+    console.log("SEGFAULT!");
+    console.log("Stack Trace:\n" + stack);
+});
+
+
+var bluetooth_controller = new bluetooth();
 
 /* Common packet reading/writing utilities */
 var packet_utils = new packetUtils();
 
-/* Sonar packet handler */
+bluetooth_controller.start(); 
+            
 var sonar_packets = new sonarPackets(bluetooth_controller);
 var server_packets = new serverPackets(bluetooth_controller);
-var motor_packets = new motorPackets( new servo(0), new motors() );
+var motor_packets = new motorPackets( new servo(4), new motors() );
+
+var serialPort = new SerialPort("/dev/ttyMFD2", {
+                            baudrate: 115200
+                        });
+                        
+
+
+serialPort.on('open', function() {
+    
+    var packet = null;
+
+    var packetsQueue = [];
+
+    console.log("serial port open");
+
+     /* Set socket on packet handlers */
+    sonar_packets.socket = serialPort;
+    server_packets.socket = serialPort;
+    motor_packets.socket = serialPort;
+
+    serialPort.on('data', function(data) {
+        if(packet != null) {
+            packet = Buffer.concat([packet, data]);
+        } else {
+            packet = data;
+        }
+
+        var packetSize = packet_utils.getSize(packet);
+
+        if(packetSize == null) {
+            return;
+        }
+
+        var packetType = packet_utils.getType(packet);
+
+        if(packetType == null) {
+            return;
+        }
+
+        var packetOpcode = packet_utils.getOpcode(packet);
+
+        if(packetOpcode == null) {
+            return;
+        }
+
+        var packetValue = null;
+
+        if(packetSize > 0) {
+            packetValue = packet_utils.getValue(packet, packetSize);
+
+            if(packetValue == null) {
+                return;
+            }
+        }
+
+        var params = {
+            size: packetSize,
+            type: packetType,
+            opcode: packetOpcode,
+            value: packetValue 
+        };
+
+        if(packetsQueue.length == 0) {
+            packetsQueue.push(params);
+            packet_processor(packetsQueue);
+            console.log("packet added and packet_processor started", params);
+        } else {
+            packetsQueue.push(params);
+            console.log("packet added", params);
+        }
+
+        /* Reset for next packet */
+        var total_packet_size = (6+packetSize);
+
+        if(packet.length > total_packet_size) {
+            var temp_buffer = new Buffer(packet.length-total_packet_size);
+            packet.copy(temp_buffer, 0, total_packet_size);
+            packet = temp_buffer;
+            console.log("Copy over rest");
+        } else {
+            packet = null;
+        }
+    });
+
+    serialPort.on('error', function(message) {
+        console.log("Serial port error: " + message);
+    });
+    
+    serialPort.on('close', function() {
+        console.log("Serial port closed");
+    });
+});
+
 
 /* Process queued packets */
 var packet_processor = function(packets_queue) {
@@ -67,114 +170,26 @@ var packet_processor = function(packets_queue) {
     });
 };
 
-var SerialPort = require("serialport").SerialPort;
-var serialPort = new SerialPort("/dev/ttyMFD2", {
-    baudrate: 115200
-});
 
-serialPort.on('open' , function() {
-    console.log("serial port open");
-    
-    serialPort.on('data', function(data) {
-        console.log('data received: ' + data);
-    });
-    
-    serialPort.on('error', function(message) {
-        console.log(message);
-    });
-    
-    serialPort.write("Test", function(err, result) {
-        console.log('err ' + err);
-        console.log('Results ' + result);
-    });
-});
 
 //Create server
-var server = net.createServer();
+//var server = net.createServer();
 
 // Track all clients
-var client;  // TODO: separate clients from users
+//var client;  // TODO: separate clients from users
 
-server.on('connection', function(socket) {
+/*server.on('connection', function(socket) {
 	socket.id = shortid.generate();
 
 	console.log( "[" + socket.id + "][CONNECTED]");
 
 	client = socket;
 	
-    var packet = null;
     
-    var packetsQueue = [];
     
-    /* Set socket on packet handlers */
-    sonar_packets.socket = client;
-    server_packets.socket = client;
-    motor_packets.socket = client;
+   
     
 	socket.on('data', function(data) {
-        
-        if(packet != null) {
-            packet = Buffer.concat([packet, data]);
-        } else {
-            packet = data;
-        }
-        
-        var packetSize = packet_utils.getSize(packet);
-        
-        if(packetSize == null) {
-            return;
-        }
-        
-        var packetType = packet_utils.getType(packet);
-        
-        if(packetType == null) {
-            return;
-        }
-        
-        var packetOpcode = packet_utils.getOpcode(packet);
-        
-        if(packetOpcode == null) {
-            return;
-        }
-        
-        var packetValue = null;
-        
-        if(packetSize > 0) {
-            packetValue = packet_utils.getValue(packet, packetSize);
-            
-            if(packetValue == null) {
-                return;
-            }
-        }
-        
-        var params = {
-            size: packetSize,
-            type: packetType,
-            opcode: packetOpcode,
-            value: packetValue 
-        };
-        
-        if(packetsQueue.length == 0) {
-            packetsQueue.push(params);
-            packet_processor(packetsQueue);
-            console.log("packet added and packet_rpcoess started", params);
-        } else {
-            packetsQueue.push(params);
-            console.log("packet added", params);
-        }
-
-        /* Reset for next packet */
-        var total_packet_size = (6+packetSize);
-        
-        if(packet.length > total_packet_size) {
-            var temp_buffer = new Buffer(packet.length-total_packet_size);
-            packet.copy(temp_buffer, 0, total_packet_size);
-            packet = temp_buffer;
-            console.log("Copy over rest");
-        } else {
-            packet = null;
-        }
-        
         //console.log("Recieved ", params, " from client");
 	});
 
@@ -190,13 +205,14 @@ server.on('connection', function(socket) {
 
 server.listen(config.PORT, function() {
 	console.log("Server listening on port " + server.address().port);
-});
+});*/
 
 process.on('SIGINT', function() {
-	server.close(function(){
+	/*server.close(function(){
 		console.log('Stopped listening.');
-    });
+    });*/
 	
+    console.log("Got a SIGINT event");
 	bluetooth_controller.disconnect();
 
     process.exit();

@@ -21,11 +21,14 @@ var SonarPackets = function(bluetooth) {
         
         if(_this.socket != null) {
             try {
-                _this.socket.write(packet);
+                _this.socket.write(packet, function(err, result) {
+                    console.log('err ' + err);
+                    console.log('Results ' + result);
+                    console.log("Water Temp " + temp + " packet send to client");
+                });
             } catch(err) { 
                 console.log("Exception ReadWaterTemp", err);
             }
-            console.log("Water Temp " + temp + " packet send to client");
         }
     };
     
@@ -39,12 +42,12 @@ var SonarPackets = function(bluetooth) {
         
         if(_this.socket != null) {
             try {
-                _this.socket.write(packet);
+                _this.socket.write(packet, function(err, result) {
+                    //console.log("Echoes ", packet, " packet sent to client");
+                });
             } catch(err) { 
                 console.log("Exception Echoes", err);
             }
-            
-            //console.log("Echoes ", data, " packet sent to client");
         }
     };
     
@@ -54,11 +57,14 @@ var SonarPackets = function(bluetooth) {
         
         if(_this.socket != null) {
             try {
-                _this.socket.write(packet);
+                _this.socket.write(packet, function(err, result) {
+                    console.log('err ' + err);
+                    console.log('Results ' + result);
+                    console.log("Bluetooth disconnect packet sent to client");
+                });
             } catch(err) { 
                 console.log("Exception onDisconnect", err);
             }
-            console.log("Bluetooth disconnect packet sent to client");
         }
     };
 };
@@ -123,6 +129,7 @@ SonarPackets.prototype.handleWritePacket = function(packet, callback) {
             this.bluetooth.changeEchoEnable(value, callback);
             break;
         case opcodes.sonar.SonarEchoes:
+            this.bluetooth.changeEchoEnable(1, callback);
             this.bluetooth.EchoNotify(value, callback);
             break;
         default:

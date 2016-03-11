@@ -2,9 +2,6 @@ var pca9685 = require('./pca9685');
 
 var Servo = function(channel) {
     this.channel = channel;
-};
-
-Servo.prototype.Command = function(cmd) {
     this.pwm = new pca9685(1, 0x40);
     this.pwm.setPrescaler(121);
 
@@ -24,7 +21,9 @@ Servo.prototype.Command = function(cmd) {
     // enabling servo mode makes the output active high and sets the frequency to
     //  approximately 50Hz.
     this.pwm.enableServoMode();
+};
 
+Servo.prototype.Command = function(cmd) {
     this.pwm.setChlAngle(this.channel, cmd);  // 50 = closed. 90 = open
 };
 
@@ -34,7 +33,7 @@ Servo.prototype.Open = function() {
 };
 
 Servo.prototype.Close = function() {
-    this.Command(45);
+    this.Command(47);
     console.log("Release closed");
 };
 
