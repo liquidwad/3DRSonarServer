@@ -78,10 +78,13 @@ SonarPackets.prototype.handlePacket = function(packet, callback) {
     else if(packet.value == null) {
         this.handleReadPacket(packet, callback);
     }
+    else
+        callback();
 };
 
 SonarPackets.prototype.handleReadPacket = function(packet, callback) {
     var _this = this;
+    console.log("Sonar HandleReadPacket entered");
     
     switch( packet.opcode ) {
         case opcodes.sonar.BleConnect:
@@ -101,18 +104,23 @@ SonarPackets.prototype.handleReadPacket = function(packet, callback) {
                     console.log("Connected packet sent to client");
                 }
                 
-                callback();
             };
             
-            if(this.bluetooth.isConnected()) {
+            console.log("Checking if bluetooth is connected");
+            
+            if(_this.bluetooth != null && _this.bluetooth.isStarted() && _this.bluetooth.isConnected()) {
+                console.log("Found that bluetooth is connected");
                 onConnected();
             } else {
-                this.bluetooth.onConnected = onConnected;
+                _this.bluetooth.onConnected = onConnected;
             }
             break;
         default:
             break;
     }
+    
+    console.log("Sonar HandleReadPacket calling callback()");
+    callback();
 };
 
 SonarPackets.prototype.handleWritePacket = function(packet, callback) {
@@ -126,13 +134,18 @@ SonarPackets.prototype.handleWritePacket = function(packet, callback) {
             this.bluetooth.TemperatureNotify(value, callback);
             break;
         case opcodes.sonar.SonarEnable:
-            this.bluetooth.changeEchoEnable(value, callback);
-            break;
-        case opcodes.sonar.SonarEchoes:
-            this.bluetooth.changeEchoEnable(1, callback);
-            this.bluetooth.EchoNotify(value, callback);
+            if( value == 1 ) {
+                this.bluetooth.changeEchoEnable(value, callback);
+                this.bluetooth.EchoNotify(value, callback);
+            }
+            else {
+                this.bluetooth.EchoNotify(value, callback);
+                this.bluetooth.changeEchoEnable(value, callback);
+            }
+                
             break;
         default:
+            callback();
            break;
     }
 };

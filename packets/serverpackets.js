@@ -40,6 +40,7 @@ ServerPackets.prototype.handleReadPacket = function(packet, callback) {
             callback();
             break;
         default:
+            callback();
            break;
     }
 };

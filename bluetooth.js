@@ -5,7 +5,9 @@ var noble = require('noble'),
 
 ///28:cf:e9:4e:70:18 maybe we need this later?
 //localname = ReelSona
-var Bluetooth = function() { };
+var Bluetooth = function() {
+ this.started = false;
+};
 
 Bluetooth.prototype.uuids = {
 	accel_service: 		'1791ffa0385311e3aa6e0800200c9a66',
@@ -49,25 +51,27 @@ Bluetooth.prototype.logError = function(error) {
 
 Bluetooth.prototype.discoverService = function(device, serviceUUID, callback) {
 	var _this = this;
-	
-	device.discoverServices([serviceUUID], function(error, services) {
-		_this.logError(error);
-			
-		if(services.length == 0) {
-			console.log("No service found");
-			callback(null);
-			return;
-		}
-			
-		var service = services[0];
-		
-		if(typeof service !== 'undefined') {
-			console.log("Found service " + serviceUUID);
-			callback(service);
-		} else {
-			callback(null);
-		}
-	});
+	if(device != null)
+    {
+        device.discoverServices([serviceUUID], function(error, services) {
+            _this.logError(error);
+
+            if(services.length == 0) {
+                console.log("No service found");
+                callback(null);
+                return;
+            }
+
+            var service = services[0];
+
+            if(typeof service !== 'undefined') {
+                console.log("Found service " + serviceUUID);
+                callback(service);
+            } else {
+                callback(null);
+            }
+        });
+    }
 };
 
 Bluetooth.prototype.discoverCharacteristics = function(service, characteristicUUID, callback) {
@@ -121,6 +125,10 @@ Bluetooth.prototype.getCharacteristic = function(serviceUUID, characteristicUUID
 	}
 };
 
+Bluetooth.prototype.isStarted = function() {
+    return this.started;
+}
+
 Bluetooth.prototype.isConnected = function() {
     if(typeof this.device !== 'undefined' && this.device.state == 'connected') {
         return true;
@@ -164,9 +172,12 @@ Bluetooth.prototype.start = function() {
 	noble.on('stateChange', function(state) {
 		if(state == 'poweredOn') {
 			noble.startScanning();
-			console.log("Scanning started");
+			_this.started = true;
+            console.log("Scanning started");
+            
 		} else {
 			noble.stopScanning();
+            _this.started = false;
 			console.log("Scanning stopped (state: " + state + ")");
 		}
 	});

@@ -1,14 +1,16 @@
 var pca9685 = require('./pca9685');
+var sleep = require('sleep');
 
-var Servo = function(channel) {
-    this.channel = channel;
+var Servo = function(gripperChannel, brakeChannel) {
+    this.gripperChannel = gripperChannel;
+    this.brakeChannel = brakeChannel;
     this.pwm = new pca9685(1, 0x40);
     this.pwm.setPrescaler(121);
-
     var minAngle = 0;
     var maxAngle = 160;
 
-    this.pwm.setChlDuty(this.channel, 0);
+    this.pwm.setChlDuty(this.gripperChannel, 0);
+    this.pwm.setChlDuty(this.brakeChannel, 0);
 
     // These numbers are based on experimentation with SparkFun's generic
     //  sub-micro servo motor. You may find that they are too high or too low for
@@ -21,20 +23,32 @@ var Servo = function(channel) {
     // enabling servo mode makes the output active high and sets the frequency to
     //  approximately 50Hz.
     this.pwm.enableServoMode();
+    
+    this.Brake();
+    this.Close();
 };
 
-Servo.prototype.Command = function(cmd) {
-    this.pwm.setChlAngle(this.channel, cmd);  // 50 = closed. 90 = open
+Servo.prototype.Command = function(channel, cmd) {
+    this.pwm.setChlAngle(channel, cmd); 
 };
 
 Servo.prototype.Open = function() {
-    this.Command(90);
-    console.log("Release opened");
+    this.Command(this.gripperChannel, 90); 
 };
 
 Servo.prototype.Close = function() {
-    this.Command(47);
-    console.log("Release closed");
+    this.Command(this.gripperChannel, 49);  
+};
+
+Servo.prototype.Brake = function() {
+    console.log("Brake()");
+    this.Command(this.brakeChannel, 95 );
+};
+
+
+Servo.prototype.Release = function() {
+    console.log("Release()");
+    this.Command(this.brakeChannel, 120 );
 };
 
 module.exports = Servo;

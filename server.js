@@ -37,17 +37,42 @@ var bluetooth_controller = new bluetooth();
 /* Common packet reading/writing utilities */
 var packet_utils = new packetUtils();
 
-bluetooth_controller.start(); 
+//bluetooth_controller.start(); 
             
 var sonar_packets = new sonarPackets(bluetooth_controller);
 var server_packets = new serverPackets(bluetooth_controller);
-var motor_packets = new motorPackets( new servo(4), new motors() );
+var motor_packets = new motorPackets( new servo(4, 6), new motors() );
 
 var serialPort = new SerialPort("/dev/ttyMFD2", {
                             baudrate: 115200
                         });
                         
+var sendNullPacket = function() {
+    var packet = new Buffer(7);
+    packet_utils.setHeader(packet, 1, 0, 0);
 
+    /* packet value */
+    packet.writeInt8(0, 6);
+
+    if(serialPort != null) {
+        try {
+            serialPort.write(packet, function(err, result) {
+            });
+        } catch(err) { 
+            console.log("Exception sending null packet: ", err);
+        }
+    }
+}
+
+var sendNullPacketRepeatedly = function() {
+    async.whilst(function() {
+        return true;
+    }, function(callback) {
+        sendNullPacket();
+        sleep.usleep(1000);
+        callback();
+    });
+}
 
 serialPort.on('open', function() {
     
@@ -62,7 +87,10 @@ serialPort.on('open', function() {
     server_packets.socket = serialPort;
     motor_packets.socket = serialPort;
 
+    sendNullPacketRepeatedly();
     serialPort.on('data', function(data) {
+        console.log("Got data");
+        
         if(packet != null) {
             packet = Buffer.concat([packet, data]);
         } else {
@@ -105,9 +133,10 @@ serialPort.on('open', function() {
         };
 
         if(packetsQueue.length == 0) {
+            console.log("packet added and packet_processor started", params);
             packetsQueue.push(params);
             packet_processor(packetsQueue);
-            console.log("packet added and packet_processor started", params);
+            
         } else {
             packetsQueue.push(params);
             console.log("packet added", params);
@@ -144,13 +173,13 @@ var packet_processor = function(packets_queue) {
         var packet = packets_queue[0];
         
         var cb = function() {
+          console.log("Next packet");
           packets_queue.splice(0, 1);
           callback();  
         };
     
         switch(packet.type) {
             case types.Sonar:
-                //cb();
                 console.log("Received sonar packet");
                 sonar_packets.handlePacket(packet, cb);
                 break;
@@ -165,6 +194,7 @@ var packet_processor = function(packets_queue) {
                 server_packets.handlePacket(packet, cb);
                 break;
             default:
+                cb();
                 break;
         }
     });
