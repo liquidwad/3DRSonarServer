@@ -64,16 +64,6 @@ var sendNullPacket = function() {
     }
 }
 
-var sendNullPacketRepeatedly = function() {
-    async.whilst(function() {
-        return true;
-    }, function(callback) {
-        sendNullPacket();
-        sleep.usleep(1000);
-        callback();
-    });
-}
-
 serialPort.on('open', function() {
     
     var packet = null;
@@ -87,7 +77,7 @@ serialPort.on('open', function() {
     server_packets.socket = serialPort;
     motor_packets.socket = serialPort;
 
-    sendNullPacketRepeatedly();
+    //setInterval(sendNullPacket, 100);
     serialPort.on('data', function(data) {
         console.log("Got data");
         

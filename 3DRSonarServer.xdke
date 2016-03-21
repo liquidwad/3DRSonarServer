@@ -21,8 +21,8 @@
         "name": "3DRSonarServer.xdk"
       },
       "3DRSonarServer.xdke": {
-        "previousModTime": 1458267407891,
-        "modified": 1458267407891,
+        "previousModTime": 1458418783527,
+        "modified": 1458418783527,
         "seen": true,
         "name": "3DRSonarServer.xdke"
       },
@@ -69,8 +69,8 @@
         "name": "pca9685.js"
       },
       "server.js": {
-        "previousModTime": 1458224894430,
-        "modified": 1458224894430,
+        "previousModTime": 1458418374469,
+        "modified": 1458418374469,
         "seen": true,
         "name": "server.js"
       },
@@ -147,67 +147,6 @@
         "name": "packets/motorpackets.js"
       }
     },
-    "boardFileStatus": {
-      "LICENSE": {
-        "previousModTime": 1458305146925
-      },
-      "README.md": {
-        "previousModTime": 1458305146925
-      },
-      "bluetooth.js": {
-        "previousModTime": 1458305146925
-      },
-      "common.js": {
-        "previousModTime": 1458305146925
-      },
-      "config.js": {
-        "previousModTime": 1458305146925
-      },
-      "package.json": {
-        "previousModTime": 1458305146925
-      },
-      "pca9685.js": {
-        "previousModTime": 1458305146925
-      },
-      "server.js": {
-        "previousModTime": 1458305146925
-      },
-      "servo.js": {
-        "previousModTime": 1458305146925
-      },
-      "util.js": {
-        "previousModTime": 1458305146925
-      },
-      "packets/opcodes.js": {
-        "previousModTime": 1458305146925
-      },
-      "packets/packetutils.js": {
-        "previousModTime": 1458305146925
-      },
-      "packets/serverpackets.js": {
-        "previousModTime": 1458305146925
-      },
-      "packets/sonarpackets.js": {
-        "previousModTime": 1458305146925
-      },
-      "packets/types.js": {
-        "previousModTime": 1458305146925
-      },
-      "xdk/project-info.json": {
-        "previousModTime": 1458305146925
-      },
-      "npm-debug.log": {
-        "previousModTime": 1458305146925
-      },
-      "motors.js": {
-        "previousModTime": 1458305146925
-      },
-      "tb6612.js": {
-        "previousModTime": 1458305146925
-      },
-      "packets/motorpackets.js": {
-        "previousModTime": 1458305146925
-      }
-    }
+    "boardFileStatus": {}
   }
 }
